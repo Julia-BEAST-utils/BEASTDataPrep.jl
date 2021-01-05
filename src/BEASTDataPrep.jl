@@ -1,5 +1,8 @@
 module BEASTDataPrep
 
-# Write your package code here.
+export parse_continuous_data
+
+include("parse_data.jl")
+
 
 end
