@@ -1,5 +1,3 @@
-using CSV, DataFrames
-
 const SPECIES_NAMES = ["taxon", "species"]
 const FLOAT_TYPES = [Real, Union{Missing, <:Real}]
 const TAXON_NAME = "taxon"
@@ -23,7 +21,7 @@ function process_column(col::Union{Missing, <:Real})::Vector{Float64}
 end
 
 
-function parse_extension(path::AbstractString)<:AbstractString
+function parse_extension(path::AbstractString)
     last_dot = findlast(isequal('.'), path)
     ext = path[(last_dot + 1):end]
     return ext
