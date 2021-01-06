@@ -1,5 +1,8 @@
 const CURRENT_NAME = [""]
 
+################################################################################
+## Makes a plot with all relevant transforms to visualize the data
+################################################################################
 
 function plot_transformed_data(df::DataFrame)
 
@@ -59,6 +62,10 @@ end
 function blank_plot(title::String)
     return plot(x=Float64[], Geom.histogram, Guide.title(title))
 end
+
+################################################################################
+## General tools for transforming data
+################################################################################
 
 function can_transform_log(x::Vector{Float64})
     neg_ind = findfirst(y -> y < 0.0, x)
@@ -129,3 +136,34 @@ end
 function logit(x::Float64)
     return log(x / (1 - x))
 end
+
+################################################################################
+## transforming the dataframe
+################################################################################
+
+function transform_data!(df::DataFrame, transform::Function;
+                        inds::AbstractVector{Int} = 1:(size(df, 2) - 1))
+    nms = names(df)
+    for ind in inds
+        CURRENT_NAME[1] = nms[ind + 1]
+        col = df[!, ind + 1]
+        col .= transform(col)
+    end
+end
+
+
+function log_transform_data!(df::DataFrame;
+                             inds::AbstractVector{Int} = 1:(size(df, 2) - 1))
+    transform_data!(df, log_transform, inds = inds)
+end
+
+function standardize_data!(df::DataFrame)
+    for i = 2:size(df, 2)
+        col = df[!, i]
+        μ = mean(col)
+        σ = std(col, mean=μ, corrected=false)
+        df[!, i] .-= μ
+        df[!, i] ./= σ
+    end
+end
+

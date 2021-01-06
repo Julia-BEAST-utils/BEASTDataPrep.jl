@@ -69,7 +69,6 @@ function parse_continuous_df(df::DataFrame)
     end
 
     return processed_df
-
 end
 
 
