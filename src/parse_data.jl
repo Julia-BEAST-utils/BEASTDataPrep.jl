@@ -2,12 +2,12 @@ const SPECIES_NAMES = ["taxon", "species"]
 const FLOAT_TYPES = [Real, Union{Missing, <:Real}]
 const TAXON_NAME = "taxon"
 
-function process_column(col::Vector{<:Real})::Vector{Float64}
+function process_column(col::AbstractVector{<:Real})::Vector{Float64}
     n = length(col)
     return [convert(Float64, x) for x in col]
 end
 
-function process_column(col::Union{Missing, <:Real})::Vector{Float64}
+function process_column(col::AbstractVector{Union{Missing, T}})::Vector{Float64} where T <: Real
     n = length(col)
     v = zeros(n)
     for i = 1:n
@@ -36,7 +36,7 @@ function parse_continuous_data(datapath::AbstractString)::DataFrame
 end
 
 function parse_continuous_data_csv(datapath::AbstractString)
-    df = CSV.read(datapath)
+    df = DataFrame(CSV.File(datapath))
     processed_df = parse_continuous_df(df)
 
     return processed_df
