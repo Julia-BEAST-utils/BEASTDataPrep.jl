@@ -6,10 +6,6 @@ const TAXON_NAME = "taxon"
 
 
 
-const FILE_EXTENSIONS = Dict{String, Function}(
-                            "csv" => parse_continuous_data_csv,
-                            "nex" => parse_continuous_data_nexus
-                            )
 
 
 
@@ -249,4 +245,9 @@ function parse_continuous_df(df::DataFrame)
     return processed_df
 end
 
+
+const FILE_EXTENSIONS = Dict{String, Function}(
+                            "csv" => parse_continuous_data_csv,
+                            "nex" => parse_continuous_data_nexus
+                            )
 
