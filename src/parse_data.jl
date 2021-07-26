@@ -170,7 +170,7 @@ end
 
 function remove_comments_nexus(s::AbstractString)
     @unpack between = split_by_pattern(s, NEXUS_COMMENT)
-    return join(between, '\n')
+    return join(between)
 end
 
 function parse_continuous_data_nexus(path::String)
@@ -217,13 +217,9 @@ end
 
 
 function parse_continuous_df(df::DataFrame)
+
+    check_valid(df)
     colnames = names(df)
-    taxon_inds = findall(x -> lowercase(x) in SPECIES_NAMES, colnames)
-    if length(taxon_inds) > 1
-        error("not yet implemented")
-    elseif length(taxon_inds) == 0
-        error("unable to parse input file. cannot find list of taxa.")
-    end
 
     taxa = df[!, taxon_inds[1]]
     data_inds = Int[]
@@ -243,6 +239,17 @@ function parse_continuous_df(df::DataFrame)
     end
 
     return processed_df
+end
+
+function check_valid(df::DataFrame)
+    colnames = names(df)
+    taxon_inds = findall(x -> lowercase(x) in SPECIES_NAMES, colnames)
+    if length(taxon_inds) > 1
+        error("cannot determine taxon column. multiple matches.")
+    elseif length(taxon_inds) == 0
+        error("not a valid trait data set. cannot find list of taxa.")
+    end
+    return colnames[taxon_inds[1]]
 end
 
 
