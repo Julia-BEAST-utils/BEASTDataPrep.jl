@@ -4,54 +4,64 @@ const CURRENT_NAME = [""]
 ## Makes a plot with all relevant transforms to visualize the data
 ################################################################################
 
-function plot_transformed_data(df::DataFrame)
+function plot_transformed_data(df::DataFrame;
+                               svg_path::String = "checkTransforms.svg",
+                               overwrite::Bool = false)
+
+    if !overwrite && isfile(svg_path)
+        throw(ArgumentError("file '$svg_path' already exists. Either specify " *
+                    "'overwrite=true' or 'svg_path=<some other file name>'."))
+    end
 
     nms = names(df)
-    if nms[1] != TAXON_NAME
-        error("first column of dataframe must be \"$(TAXON_NAME)\"")
-    end
+
     n, p = size(df)
+    relevant_columns = findall(x -> eltype(x) <: Real, [df[!, i] for i = 1:p])
 
-    plots = Matrix{Plot}(undef, p - 1, 3)
+    p_rel = length(relevant_columns)
+    plots = Matrix{Plot}(undef, p_rel, 3)
 
 
 
-    for i = 2:p
+    for row in 1:length(relevant_columns)
+        i = relevant_columns[row]
         col = df[!, i]
-        if !(eltype(col) <: Float64)
-            error("all columns (except the first) must have elements of type Float64")
+        if !(eltype(col) <: Real)
+            error("all columns (except the first) must have elements of type Real")
         end
 
         name = nms[i]
         CURRENT_NAME[1] = name
 
+        col = col[findall(!isnan, col)]
+
         p_original = plot(x=col,
                         Geom.histogram,
-                        Guide.title(plot_title(i - 1, name, "untransformed")))
-        plots[i - 1, 1] = p_original
+                        Guide.title(plot_title(row, name, "untransformed")))
+        plots[row, 1] = p_original
 
-        log_title = plot_title(i - 1, name, "log")
-        logit_title = plot_title(i - 1, name, "logit")
+        log_title = plot_title(row, name, "log")
+        logit_title = plot_title(row, name, "logit")
 
 
         if can_transform_log(col)
-            plots[i - 1, 2] = plot(x = log_transform(col),
+            plots[row, 2] = plot(x = log_transform(col),
                                 Geom.histogram, Guide.title(log_title))
         else
-            plots[i - 1, 2] = blank_plot(log_title)
+            plots[row, 2] = blank_plot(log_title)
         end
         if can_transform_logit(col)
-            plots[i - 1, 3] = plot(x = logit_transform(col),
+            plots[row, 3] = plot(x = logit_transform(col),
                                 Geom.histogram, Guide.title(logit_title))
         else
-            plots[i - 1, 3] = blank_plot(logit_title)
+            plots[row, 3] = blank_plot(logit_title)
         end
 
     end
 
     plt = gridstack(plots)
-
-    return plt
+    draw(SVG(svg_path, 10inch, p * 2inch), plt)
+    return svg_path
 end
 
 function plot_title(i::Int, name::String, transform::String)
@@ -67,22 +77,22 @@ end
 ## General tools for transforming data
 ################################################################################
 
-function can_transform_log(x::Vector{Float64})
+function can_transform_log(x::Vector{<:Real})
     neg_ind = findfirst(y -> y < 0.0, x)
     return isnothing(neg_ind)
 end
 
 
-function log_transform(x::Vector{Float64})
+function log_transform(x::Vector{<:Real})
     n = length(x)
     pos_inds = findall(y -> y > 0.0, x)
-    log_x = zeros(n)
+    log_x = fill(NaN, n)
 
     if length(pos_inds) != n
         min = minimum(@view x[pos_inds])
         half_min = 0.5 * min
         log_half_min = log(half_min)
-        zero_inds = setdiff(1:n, pos_inds)
+        zero_inds = findall(isequal(0.0), x)
         log_x[zero_inds] .= log_half_min
 
         @warn "0's in log-transform of $(CURRENT_NAME[1])." *
@@ -96,16 +106,16 @@ function log_transform(x::Vector{Float64})
     return log_x
 end
 
-function can_transform_logit(x::Vector{Float64})
-    bad_ind = findfirst(y -> y > 1.0 || y < 0.0, x)
-    return isnothing(bad_ind)
+function can_transform_logit(x::Vector{<:Real})
+    good_ind = findfirst(y -> y < 1.0 && y > 0.0, x)
+    return !isnothing(good_ind)
 end
 
-function logit_transform(x::Vector{Float64})
+function logit_transform(x::Vector{<:Real})
     n = length(x)
     good_inds = findall(y -> y > 0.0 && y < 1.0, x)
 
-    logit_x = zeros(n)
+    logit_x = fill(NaN, n)
 
     if length(good_inds) != n
         good_x = @view x[good_inds]
@@ -159,7 +169,7 @@ end
 
 function standardize_data!(df::DataFrame)
     for i = 2:size(df, 2)
-        col = df[!, i]
+        col = df[findall(!isnan, df[!, i]), i]
         μ = mean(col)
         σ = std(col, mean=μ, corrected=false)
         df[!, i] .-= μ
