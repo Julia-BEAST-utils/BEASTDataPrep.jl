@@ -21,6 +21,11 @@ function plot_transformed_data(df::DataFrame;
     p_rel = length(relevant_columns)
     plots = Matrix{Plot}(undef, p_rel, 3)
 
+    p_df = DataFrame(trait = names(df)[relevant_columns],
+            untransformed = fill(NaN, p_rel),
+            log = fill(NaN, p_rel),
+            logit = fill(NaN, p_rel))
+
 
 
     for row in 1:length(relevant_columns)
@@ -35,9 +40,12 @@ function plot_transformed_data(df::DataFrame;
 
         col = col[findall(!isnan, col)]
 
+        p = pvalue(JarqueBeraTest(col))
+        p_df.untransformed[row] = p
+
         p_original = plot(x=col,
                         Geom.histogram,
-                        Guide.title(plot_title(row, name, "untransformed")))
+                        Guide.title(plot_title(row, name, "untransformed")))# p = $p")))
         plots[row, 1] = p_original
 
         log_title = plot_title(row, name, "log")
@@ -45,13 +53,21 @@ function plot_transformed_data(df::DataFrame;
 
 
         if can_transform_log(col)
-            plots[row, 2] = plot(x = log_transform(col),
+            logged_col = log_transform(col)
+            p = pvalue(JarqueBeraTest(logged_col))
+            p_df.log[row] = p
+            # log_title = log_title * " p = $p"
+            plots[row, 2] = plot(x = logged_col,
                                 Geom.histogram, Guide.title(log_title))
         else
             plots[row, 2] = blank_plot(log_title)
         end
         if can_transform_logit(col)
-            plots[row, 3] = plot(x = logit_transform(col),
+            logit_col = logit_transform(col)
+            p = pvalue(JarqueBeraTest(logit_col))
+            p_df.logit[row] = p
+            # logit_title = logit_title * " p = $p"
+            plots[row, 3] = plot(x = logit_col,
                                 Geom.histogram, Guide.title(logit_title))
         else
             plots[row, 3] = blank_plot(logit_title)
@@ -61,7 +77,7 @@ function plot_transformed_data(df::DataFrame;
 
     plt = gridstack(plots)
     draw(SVG(svg_path, 10inch, p * 2inch), plt)
-    return svg_path
+    return p_df
 end
 
 function plot_title(i::Int, name::String, transform::String)
@@ -107,8 +123,8 @@ function log_transform(x::Vector{<:Real})
 end
 
 function can_transform_logit(x::Vector{<:Real})
-    good_ind = findfirst(y -> y < 1.0 && y > 0.0, x)
-    return !isnothing(good_ind)
+    bad_ind = findfirst(y -> y > 1.0 || y < 0.0, x)
+    return isnothing(bad_ind)
 end
 
 function logit_transform(x::Vector{<:Real})

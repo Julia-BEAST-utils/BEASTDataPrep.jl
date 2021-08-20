@@ -1,6 +1,7 @@
 module BEASTDataPrep
 
 using CSV, DataFrames, Gadfly, Statistics, PhyloNetworks
+using HypothesisTests
 
 
 export parse_continuous_data,
