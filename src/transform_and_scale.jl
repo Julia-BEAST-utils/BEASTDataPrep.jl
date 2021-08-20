@@ -40,37 +40,35 @@ function plot_transformed_data(df::DataFrame;
 
         col = col[findall(!isnan, col)]
 
-        p = pvalue(JarqueBeraTest(col))
-        p_df.untransformed[row] = p
+        pval = pvalue(JarqueBeraTest(col))
+        p_df.untransformed[row] = pval
 
         p_original = plot(x=col,
                         Geom.histogram,
-                        Guide.title(plot_title(row, name, "untransformed")))# p = $p")))
+                        Guide.title(plot_title(row, name, "untransformed", pval)))
         plots[row, 1] = p_original
 
-        log_title = plot_title(row, name, "log")
-        logit_title = plot_title(row, name, "logit")
 
 
         if can_transform_log(col)
             logged_col = log_transform(col)
-            p = pvalue(JarqueBeraTest(logged_col))
-            p_df.log[row] = p
-            # log_title = log_title * " p = $p"
+            pval = pvalue(JarqueBeraTest(logged_col))
+            p_df.log[row] = pval
             plots[row, 2] = plot(x = logged_col,
-                                Geom.histogram, Guide.title(log_title))
+                                Geom.histogram,
+                                Guide.title(plot_title(row, name, "log", pval)))
         else
-            plots[row, 2] = blank_plot(log_title)
+            plots[row, 2] = blank_plot("NA")
         end
         if can_transform_logit(col)
             logit_col = logit_transform(col)
-            p = pvalue(JarqueBeraTest(logit_col))
-            p_df.logit[row] = p
-            # logit_title = logit_title * " p = $p"
+            pval = pvalue(JarqueBeraTest(logit_col))
+            p_df.logit[row] = pval
             plots[row, 3] = plot(x = logit_col,
-                                Geom.histogram, Guide.title(logit_title))
+                                Geom.histogram,
+                                Guide.title(plot_title(row, name, "logit", pval)))
         else
-            plots[row, 3] = blank_plot(logit_title)
+            plots[row, 3] = blank_plot("NA")
         end
 
     end
@@ -80,8 +78,9 @@ function plot_transformed_data(df::DataFrame;
     return p_df
 end
 
-function plot_title(i::Int, name::String, transform::String)
-    return "$i -> $name $transform"
+function plot_title(i::Int, name::String, transform::String, p::Float64)
+    p = round(p, sigdigits=3)
+    return "$i -> $name $transform (p = $p)"
 end
 
 
