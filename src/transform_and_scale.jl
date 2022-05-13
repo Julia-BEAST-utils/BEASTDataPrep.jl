@@ -123,7 +123,12 @@ end
 
 function can_transform_logit(x::Vector{<:Real})
     bad_ind = findfirst(y -> y > 1.0 || y < 0.0, x)
-    return isnothing(bad_ind)
+    if isnothing(bad_ind)
+        good_ind = findfirst(y -> 0 < y < 1, x)
+        return !isnothing(good_ind)
+    end
+
+    return false
 end
 
 function logit_transform(x::Vector{<:Real})

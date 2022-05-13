@@ -1,13 +1,19 @@
-function conform_tree_and_data(data::DataFrame, newick::AbstractString)
+function conform_tree_and_data(data::DataFrame, newick::AbstractString;
+                               strip_chars::Vector{Char} = Char[],
+                               verbose::Bool = true)
     taxa_data = data[!, TAXON_NAME]
     tree = readTopology(newick)
-    taxa_tree = tipLabels(tree)
+    taxa_tree_original = tipLabels(tree)
+    taxa_tree = strip.(taxa_tree_original, Ref(strip_chars))
 
     # remove taxa that are not present in both tree and data from the tree
     not_in_data = setdiff(taxa_tree, taxa_data)
     for taxon in not_in_data
-        @warn "removing $taxon from tree"
-        deleteleaf!(tree, taxon)
+        if verbose
+            @warn "removing $taxon from tree"
+        end
+        i = findfirst(isequal(taxon), taxa_tree)
+        deleteleaf!(tree, taxa_tree_original[i])
     end
 
     in_both = intersect(taxa_data, taxa_tree)
